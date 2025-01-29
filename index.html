@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VG Code - Web Editor</title>
+  <style>
+    :root {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #252526;
+      --bg-tertiary: #2d2d2d;
+      --text-primary: #d4d4d4;
+      --text-secondary: #858585;
+      --accent-color: #007acc;
+      --border-color: #404040;
+      --tab-active: #1e1e1e;
+      --tab-inactive: #2d2d2d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .top-bar {
+      background: var(--bg-secondary);
+      padding: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 50px;
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .sidebar-icon {
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 0.2rem 0;
+    }
+
+    .sidebar-icon:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs {
+      background: var(--bg-secondary);
+      display: flex;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab {
+      padding: 0.5rem 1rem;
+      background: var(--tab-inactive);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .tab.active {
+      background: var(--tab-active);
+      color: var(--text-primary);
+      border-top: 2px solid var(--accent-color);
+    }
+
+    .editor-workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-group {
+      display: flex;
+      flex: 1;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 1rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 14px;
+      border: none;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    .preview-pane {
+      flex: 1;
+      display: none;
+      border-left: 1px solid var(--border-color);
+    }
+
+    .preview-pane.active {
+      display: block;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    .bottom-panel {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .console {
+      height: 150px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .console-header {
+      padding: 0.3rem 0.5rem;
+      background: var(--bg-tertiary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .console-output div {
+      padding: 0.2rem 0;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    button:hover {
+      background: #005999;
+    }
+
+    .status-bar {
+      background: var(--bg-secondary);
+      padding: 0.3rem 1rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 40px;
+      }
+
+      .editor-group {
+        flex-direction: column;
+      }
+
+      textarea {
+        min-height: 200px;
+      }
+
+      .preview-pane {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .console {
+        height: 120px;
+      }
+    }
+
+    /* Theme toggle switch */
+    .theme-switch {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      margin: 0 10px;
+    }
+
+    .theme-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #444;
+      transition: .4s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-color);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="logo">
+      <span>VG Code</span>
+    </div>
+    <div class="controls">
+      <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle">
+        <span class="slider"></span>
+      </label>
+      <button id="run-btn">Run</button>
+      <button id="download-btn">Download</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <div class="sidebar-icon" title="Files">📄</div>
+      <div class="sidebar-icon" title="Search">🔍</div>
+      <div class="sidebar-icon" title="Extensions">⚙️</div>
+    </div>
+
+    <div class="editor-container">
+      <div class="tabs">
+        <button class="tab active" data-editor="html">index.html</button>
+        <button class="tab" data-editor="css">styles.css</button>
+        <button class="tab" data-editor="js">script.js</button>
+        <button class="tab" data-editor="preview">Preview</button>
+      </div>
+
+      <div class="editor-workspace">
+        <div class="editor-pane">
+          <div class="editor-group">
+            <textarea id="html" placeholder="Write HTML here..." spellcheck="false"></textarea>
+            <textarea id="css" placeholder="Write CSS here..." style="display: none;" spellcheck="false"></textarea>
+            <textarea id="js" placeholder="Write JavaScript here..." style="display: none;" spellcheck="false"></textarea>
+            <div class="preview-pane">
+              <iframe id="preview"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-panel">
+        <div class="console-header">
+          <span>Console</span>
+          <button id="clear-console">Clear</button>
+        </div>
+        <div class="console">
+          <div id="console-output"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="left">Ready</div>
+    <div class="right">Ln 1, Col 1</div>
+  </div>
+
+  <script>
+    const htmlEditor = document.getElementById('html');
+    const cssEditor = document.getElementById('css');
+    const jsEditor = document.getElementById('js');
+    const previewFrame = document.getElementById('preview');
+    const consoleOutput = document.getElementById('console-output');
+    const downloadBtn = document.getElementById('download-btn');
+    const runBtn = document.getElementById('run-btn');
+    const clearConsoleBtn = document.getElementById('clear-console');
+    const themeToggle = document.getElementById('theme-toggle');
+    const tabs = document.querySelectorAll('.tab');
+    const editors = [htmlEditor, cssEditor, jsEditor];
+    const previewPane = document.querySelector('.preview-pane');
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        const editorId = tab.getAttribute('data-editor');
+        editors.forEach(editor => editor.style.display = 'none');
+        previewPane.classList.remove('active');
+        
+        if (editorId === 'preview') {
+          previewPane.classList.add('active');
+          updatePreview();
+        } else {
+          document.getElementById(editorId).style.display = 'block';
+        }
+      });
+    });
+
+    // Update preview
+    function updatePreview() {
+      const html = htmlEditor.value;
+      const css = `<style>${cssEditor.value}</style>`;
+      const js = `<script>${jsEditor.value}<\/script>`;
+      
+      const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      previewDoc.open();
+      previewDoc.write(html + css + js);
+      previewDoc.close();
+    }
+
+    // Console capture
+    function captureConsoleLogs() {
+      const originalLog = console.log;
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        args.forEach(arg => {
+          const div = document.createElement('div');
+          div.textContent = typeof arg === 'object' ? JSON.stringify(arg) : arg;
+          consoleOutput.appendChild(div);
+          consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        });
+      };
+    }
+
+    // Download functionality
+    function downloadFiles() {
+      const files = [
+        { content: htmlEditor.value, type: 'text/html', name: 'index.html' },
+        { content: cssEditor.value, type: 'text/css', name: 'styles.css' },
+        { content: jsEditor.value, type: 'application/javascript', name: 'script.js' }
+      ];
+
+      files.forEach(file => {
+        const blob = new Blob([file.content], { type: file.type });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = file.name;
+        link.click();
+      });
+    }
+
+    // Clear console
+    clearConsoleBtn.addEventListener('click', () => {
+      consoleOutput.innerHTML = '';
+    });
+
+    // Cursor position tracking
+    editors.forEach(editor => {
+      editor.addEventListener('keyup', function() {
+        const pos = editor.selectionStart;
+        const text = editor.value.substr(0, pos);
+        const lines = text.split('\n');
+        const line = lines.length;
+        const col = lines[lines.length - 1].length + 1;
+        document.querySelector('.status-bar .right').textContent = `Ln ${line}, Col ${col}`;
+      });
+    });
+
+    // Event listeners
+    downloadBtn.addEventListener('click', downloadFiles);
+    runBtn.addEventListener('click', updatePreview);
+    editors.forEach(editor => {
+      editor.addEventListener('input', () => {
+        if (previewPane.classList.contains('active')) {
+          updatePreview();
+        }
+      });
+    });
+
+    // Initialize
+    captureConsoleLogs();
+    updatePreview();
+  </script>
+</body>
+</html>
